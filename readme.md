@@ -16,18 +16,9 @@ So let's try it. Micrograph document has a number of sections, but now we are in
 So let's try drawing our first node:
 
 
-```python
-from IPython.display import Image
-
-graph = '''
+```yaml
 graph:
   node:
-'''
-
-!echo "{graph}" > test.yml
-!minigraph.py test.yml
-Image('test.dot.png')
-
 ```
 
 
@@ -40,16 +31,10 @@ Image('test.dot.png')
 Let's try to draw two sibling nodes and then a couple of child nodes with parent node:
 
 
-```python
-graph = '''
+```yaml
 graph:
   sibling one: null  # as you know you can omit this explicit null
   sibling two:
-'''
-!echo "{graph}" > test.yml
-!minigraph.py test.yml
-Image('test.dot.png')
-
 ```
 
 
@@ -60,17 +45,11 @@ Image('test.dot.png')
 
 
 
-```python
-graph = '''
+```yaml
 graph:
   parent:
     child1:
     child2:
-'''
-!echo "{graph}" > test.yml
-!minigraph.py test.yml
-Image('test.dot.png')
-
 ```
 
 
@@ -86,8 +65,7 @@ Minigraph reserves underscore in the beginning of the node name for properties b
 
 
 
-```python
-graph = '''
+```yaml
 graph:
   parent:
     _shape: box
@@ -98,11 +76,6 @@ graph:
       _label: |
         _lorem
         impsum
-'''
-!echo "{graph}" > test.yml
-!minigraph.py test.yml
-Image('test.dot.png')
-
 ```
 
 
@@ -115,18 +88,12 @@ Image('test.dot.png')
 We can also set some arrow (graph edge) properties.
 
 
-```python
-graph = '''
+```yaml
 graph:
   parent:
     child:
       _arrow_label: arrow
       _arrow_style: dotted
-'''
-!echo "{graph}" > test.yml
-!minigraph.py test.yml
-Image('test.dot.png')
-
 ```
 
 
@@ -140,8 +107,7 @@ Image('test.dot.png')
 Another convenient feature that I use a lot - you can draw table instead of node label using csv section:
 
 
-```python
-graph = '''
+```yaml
 graph:
   parent:
     child:
@@ -152,11 +118,6 @@ csv:
   child: |
     header1, header2
     data1, data2
-'''
-!echo "{graph}" > test.yml
-!minigraph.py test.yml
-Image('test.dot.png')
-
 ```
 
 
@@ -171,8 +132,7 @@ Since in the beginning I created this DSL to visualize databases, my idea of gra
 But if you feel inconvenient that way you could use reverse graph section:
 
 
-```python
-graph = '''
+```yaml
 graph:
   parent:
     child: grandchild
@@ -181,11 +141,6 @@ reverse graph:
   r_parent:
     r_child: r_grandchild
     r_child2:
-'''
-!echo "{graph}" > test.yml
-!minigraph.py test.yml
-Image('test.dot.png')
-
 ```
 
 
@@ -193,9 +148,3 @@ Image('test.dot.png')
 
 ![png](output_13_0.png)
 
-
-
-
-```python
-
-```
