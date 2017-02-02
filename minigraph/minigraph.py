@@ -66,7 +66,7 @@ class JsonAsNodeTree(object):
         if isinstance(tree, six.string_types):
             return tree
         if isinstance(tree, dict) and len(tree) == 1:
-            return next(six.iterkeys(tree))
+            return next(iter(tree))
         raise ValueError('{} can\'t represent a node tree'.format(tree))
 
     @staticmethod
@@ -91,17 +91,19 @@ class JsonAsNodeTree(object):
 
         raise ValueError('{} can\'t represent a node tree'.format(tree))
 
-    def get_children(self, tree):
+    @classmethod
+    def get_children(cls, tree):
         # type: (JsonAsNodeTree, Union[basestring, dict]) -> list
         return [
-            s for s in self.get_subtrees(tree)
+            s for s in cls.get_subtrees(tree)
             if not (
                 isinstance(s, dict) and
-                next(six.iterkeys(s)).startswith(self.attr_prefix)
+                next(iter(s)).startswith(self.attr_prefix)
             )
         ]
 
-    def get_attrs(self, tree):
+    @classmethod
+    def get_attrs(cls, tree):
         # type: (JsonAsNodeTree, Union[basestring, dict]) -> dict
         if isinstance(tree, dict) and len(tree) == 1:
             children = next(six.itervalues(tree))

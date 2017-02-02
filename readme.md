@@ -2,17 +2,17 @@
 # Installation
 At the moment it doesn't have installation package so one of the easiest ways might be installing dependancies and then copying minigraph.py to some folder in your PATH, for example /home/{username}/bin/ .
 
-It depends on python, graphviz (http://www.graphviz.org/Download.php), and the folowing python packages that you can install using pip: six, pyyaml, graphwiz, xmltodict 
+It depends on python, graphviz (http://www.graphviz.org/Download.php), and the folowing python packages that you can install using pip: six, pyyaml, graphwiz, xmltodict
 
 
 # introduction
 Minigraph is a small convenient language to draw simple graphs based on Yaml sintax, idea of yaml graph represintation of graphs, and Graphwiz awesome drawing abilities. For now it is actually in alpha state, so for example it not fully support csv tables or the sintax can be slightly changed though I'm reluctant to actually do it.
 
-The main idea of this language - every node is represented by yaml dictionary key: 
-    
+The main idea of this language - every node is represented by yaml dictionary key:
+
     node:
 
-So let's try it. Micrograph document has a number of sections, but now we are interested in the most important - 'graph' section. Every graph should be placed in that section (or, actually, also in 'reverse graph' section). 
+So let's try it. Micrograph document has a number of sections, but now we are interested in the most important - 'graph' section. Every graph should be placed in that section (or, actually, also in 'reverse graph' section).
 So let's try drawing our first node:
 
 
@@ -24,7 +24,7 @@ graph:
 
 
 
-![png](output_2_0.png)
+![png](doc/output_2_0.png)
 
 
 
@@ -40,7 +40,7 @@ graph:
 
 
 
-![png](output_4_0.png)
+![png](doc/output_4_0.png)
 
 
 
@@ -55,7 +55,7 @@ graph:
 
 
 
-![png](output_5_0.png)
+![png](doc/output_5_0.png)
 
 
 
@@ -81,7 +81,7 @@ graph:
 
 
 
-![png](output_7_0.png)
+![png](doc/output_7_0.png)
 
 
 
@@ -99,7 +99,7 @@ graph:
 
 
 
-![png](output_9_0.png)
+![png](doc/output_9_0.png)
 
 
 
@@ -123,7 +123,7 @@ csv:
 
 
 
-![png](output_11_0.png)
+![png](doc/output_11_0.png)
 
 
 
@@ -146,5 +146,4 @@ reverse graph:
 
 
 
-![png](output_13_0.png)
-
+![png](doc/output_13_0.png)
