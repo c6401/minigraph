@@ -62,16 +62,16 @@ class JsonAsNodeTree(object):
 
     @staticmethod
     def get_name(tree):
-        # type: (JsonAsNodeTree, Union[basestring, dict]) -> basestring
+        # type: (Union[six.string_types, dict]) -> six.string_types
         if isinstance(tree, six.string_types):
             return tree
         if isinstance(tree, dict) and len(tree) == 1:
-            return next(iter(tree))
+            return next(six.iterkeys(tree))
         raise ValueError('{} can\'t represent a node tree'.format(tree))
 
     @staticmethod
     def get_subtrees(tree):
-        # type: (JsonAsNodeTree, Union[basestring, dict]) -> list
+        # type: (Union[six.string_types, dict]) -> list
         if isinstance(tree, six.string_types):
             return []
 
@@ -91,20 +91,18 @@ class JsonAsNodeTree(object):
 
         raise ValueError('{} can\'t represent a node tree'.format(tree))
 
-    @classmethod
-    def get_children(cls, tree):
-        # type: (JsonAsNodeTree, Union[basestring, dict]) -> list
+    def get_children(self, tree):
+        # type: (JsonAsNodeTree, Union[six.string_types, dict]) -> list
         return [
-            s for s in cls.get_subtrees(tree)
+            s for s in self.get_subtrees(tree)
             if not (
                 isinstance(s, dict) and
-                next(iter(s)).startswith(self.attr_prefix)
+                next(six.iterkeys(s)).startswith(self.attr_prefix)
             )
         ]
 
-    @classmethod
-    def get_attrs(cls, tree):
-        # type: (JsonAsNodeTree, Union[basestring, dict]) -> dict
+    def get_attrs(self, tree):
+        # type: (JsonAsNodeTree, Union[six.string_types, dict]) -> dict
         if isinstance(tree, dict) and len(tree) == 1:
             children = next(six.itervalues(tree))
             if isinstance(children, dict):
@@ -171,6 +169,19 @@ def tree_elements(tree, nodes={}, edges={}, cascade={}):
 
 def tree_to_dot(tree):
     # type: (Union[basestring, dict]) -> Iterable, Iterable
+    """
+    >>> dot = tree_to_dot(yaml.load('''
+    ... graph:
+    ...   parent:
+    ...     child:
+    ... '''))
+    >>> print(dot.source.expandtabs(4))
+    digraph {
+            child -> parent
+        parent
+        child
+    }
+    """
     dot = Digraph()
 
     if 'graph' in tree:
