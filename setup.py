@@ -13,7 +13,7 @@ setup(
     install_requires=[
         "six",
         "pyyaml",
-        "graphwiz",
+        "graphviz",
         "xmltodict",
     ],
 )

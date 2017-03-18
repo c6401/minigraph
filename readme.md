@@ -1,9 +1,8 @@
 
 # Installation
-At the moment it doesn't have installation package so one of the easiest ways might be installing dependancies and then copying minigraph.py to some folder in your PATH, for example /home/{username}/bin/ .
+You can install it from this repository
 
-It depends on python, graphviz (http://www.graphviz.org/Download.php), and the folowing python packages that you can install using pip: six, pyyaml, graphwiz, xmltodict
-
+    pip install git+git://github.com/c6401/minigraph.git
 
 # introduction
 Minigraph is a small convenient language to draw simple graphs based on Yaml sintax, idea of yaml graph represintation of graphs, and Graphwiz awesome drawing abilities. For now it is actually in alpha state, so for example it not fully support csv tables or the sintax can be slightly changed though I'm reluctant to actually do it.
