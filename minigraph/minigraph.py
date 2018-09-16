@@ -22,200 +22,89 @@ SOFTWARE.
 import argparse
 import os
 
-import six
 import yaml
 from graphviz import Digraph
-from xmltodict import unparse
+from types import MappingProxyType as FrozenDict
+from typing import NamedTuple, Any, Iterable
 
 
-class JsonAsNodeTree(object):
-    """
-    Json visitor implementing node tree interface
+class Edge(NamedTuple):
+    parent: str
+    child: Any
+    parent_opts: dict = FrozenDict({})
+    edge_opts: dict = FrozenDict({})
 
-    >>> nt = JsonAsNodeTree()
-    >>> nt.get_name('node')
-    'node'
-    >>> nt.get_children('node')
-    []
-    >>> nt.get_name({'node': None})
-    'node'
-    >>> nt.get_children({'node': None})
-    []
-    >>> nt.get_children({'node': 'child'})
-    ['child']
-    >>> nt.get_children({'node': ['child']})
-    ['child']
-    >>> nt.get_children({'node': {'child': None}})
-    [{'child': None}]
-    >>> nt.get_children({'node': ['child1', 'child2']})
-    ['child1', 'child2']
-    >>> nt.get_children({'node': {'child1': None, 'child2': []}})
-    [{'child1': None}, {'child2': []}]
-    >>> nt.get_children({'node': {'_attr': 'val', 'child': None}})
-    [{'child': None}]
-    >>> nt.get_attrs({'node': {'_attr': 'val', 'child': None}})
-    {'attr': 'val'}
-    """
-
-    def __init__(self, attr_prefix='_'):
-        self.attr_prefix = attr_prefix
-
-    @staticmethod
-    def get_name(tree):
-        # type: (Union[six.string_types, dict]) -> six.string_types
-        if isinstance(tree, six.string_types):
-            return tree
-        if isinstance(tree, dict) and len(tree) == 1:
-            return next(six.iterkeys(tree))
-        raise ValueError('{} can\'t represent a node tree'.format(tree))
-
-    @staticmethod
-    def get_subtrees(tree):
-        # type: (Union[six.string_types, dict]) -> list
-        if isinstance(tree, six.string_types):
-            return []
-
-        if isinstance(tree, dict):
-            if len(tree) > 1:
-                return [{k: v} for k, v in tree.items()]
-
-            subtree = next(six.itervalues(tree))
-            if subtree is None:
-                return []
-            if isinstance(subtree, six.string_types):
-                return [subtree]
-            if isinstance(subtree, list):
-                return subtree
-            if isinstance(subtree, dict):
-                return [{k: v} for k, v in subtree.items()]
-
-        raise ValueError('{} can\'t represent a node tree'.format(tree))
-
-    def get_children(self, tree):
-        # type: (JsonAsNodeTree, Union[six.string_types, dict]) -> list
-        return [
-            s for s in self.get_subtrees(tree)
-            if not (
-                isinstance(s, dict) and
-                next(six.iterkeys(s)).startswith(self.attr_prefix)
-            )
-        ]
-
-    def get_attrs(self, tree):
-        # type: (JsonAsNodeTree, Union[six.string_types, dict]) -> dict
-        if isinstance(tree, dict) and len(tree) == 1:
-            children = next(six.itervalues(tree))
-            if isinstance(children, dict):
-                return {
-                    k[1:]: v for k, v in children.items()
-                    if k.startswith(self.attr_prefix)
-                }
-        return {}
+        
+class Node(NamedTuple):
+    name: str
+    children: Iterable
+    opts: dict = FrozenDict({})
+    edge_opts: dict = FrozenDict({})
 
 
-nt = JsonAsNodeTree()
+def graph_and_options(graph):
+    if not isinstance(graph, dict):
+        return graph, {}, {}
+    new_graph, opts, edge_opts = graph.copy(), {}, {}
+    for k, v in graph.items():
+        if k.startswith('_edge_'):
+            edge_opts[k[6:]] = new_graph.pop(k)
+        elif k.startswith('_'):
+            opts[k[1:]] = new_graph.pop(k)
+    return new_graph, opts, edge_opts
 
 
-def group_by_namespace(attrs, namespaces):
-    # type: (dict, Iterble) -> dict
-    """
-    >>> group_by_namespace({'test': 1, 'ns_check': 2}, ['ns_'])
-    {'': {'test': 1}, 'ns_': {'check': 2}}
-    """
-    groups = {'': {}}
-
-    for namespace in namespaces:
-        groups[namespace] = {}
-        for key, value in attrs.items():
-            _, found_namespace, new_key = key.rpartition(namespace)
-            groups[found_namespace][new_key] = value
-    return groups
+def translate_dict(graph):
+    for name, descendants in graph.items():
+        descendants, opts, edge_opts = graph_and_options(descendants)
+        children = translate(descendants)
+        yield Node(name, children, opts, edge_opts)
 
 
-def tree_elements(tree, nodes={}, edges={}, cascade={}):
-    # type: (Union[basestring, dict], dict, dict) -> Iterable, Iterable
-    """
-    >>> tree_elements({'parent': {'_attr': 0, 'child': None}})
-    ({'parent': {'attr': 0}, 'child': {}}, {('parent', 'child'): {}})
-    """
-    nodes = nodes.copy()
-    edges = edges.copy()
-    cascade = cascade.copy()
-
-    attrs = nt.get_attrs(tree)
-    attr_groups = group_by_namespace(attrs, ('arrow_', 'cascade_'))
-    cascade.update(attr_groups['cascade_'])
-
-    children = nt.get_children(tree)
-    for child in nt.get_children(tree):
-        nodes, edges = tree_elements(
-            tree=child, nodes=nodes, edges=edges, cascade=cascade,
-        )
-
-    try:
-        name = nt.get_name(tree)
-    except ValueError:
-        return nodes, edges
-
-    attrs = dict(attr_groups[''], **cascade)
-    nodes.setdefault(name, {}).update(attrs)
-    for child in children:
-        child_name = nt.get_name(child)
-        attrs = nt.get_attrs(child)
-        attrs = group_by_namespace(attrs, ('arrow_',))['arrow_']
-        edges.setdefault((name, child_name), {}).update(attrs)
-    return nodes, edges
+def translate_list(graph):
+    for item in graph:
+        yield from translate(item)
 
 
-def tree_to_dot(tree):
-    # type: (Union[basestring, dict]) -> Iterable, Iterable
-    """
-    >>> dot = tree_to_dot(yaml.load('''
-    ... graph:
-    ...   parent:
-    ...     child:
-    ... '''))
-    >>> print(dot.source.expandtabs(4))
-    digraph {
-            child -> parent
-        parent
-        child
-    }
-    """
+def translate_str(name):
+    yield Node(name, [])
+
+
+def translate(graph):
+    if isinstance(graph, dict):
+        yield from translate_dict(graph)
+    if isinstance(graph, list):
+        yield from translate_list(graph)
+    elif isinstance(graph, str):
+        yield from translate_str(graph)
+
+
+def nodes_to_edges(graph):
+    for node in graph:
+        have_children = False
+        yield Edge(node.name, None, node.opts)
+        for child in node.children:
+            have_children = True
+            yield Edge(node.name, child.name, node.opts, child.edge_opts)
+            yield from nodes_to_edges([child])
+        
+
+def graph_to_dot(schema):
     dot = Digraph()
+    graph = schema.get('graph')
+    for edge in nodes_to_edges(translate(graph)):
+        dot.node(edge.parent, **edge.parent_opts)
+        if edge.child:
+            dot.edge(edge.child, edge.parent, **edge.edge_opts)
 
-    if 'graph' in tree:
-        graph = tree['graph']
+    graph = schema.get('reverse graph')
+    for edge in nodes_to_edges(translate(graph)):
 
-        attrs = nt.get_attrs({None: graph})
-        attr_groups = group_by_namespace(attrs, ('node_',))
-        dot.node_attr.update(attr_groups['node_'])
-        dot.graph_attr.update(attr_groups[''])
+        dot.node(edge.parent, **edge.parent_opts)
+        if edge.child:
+            dot.edge(edge.parent, edge.child, **edge.edge_opts)
 
-        nodes, edges = tree_elements(graph)
-        for (a, b), attrs in edges.items():
-            dot.edge(b, a, **attrs)
-        for node, attrs in nodes.items():
-            dot.node(node, **attrs)
-
-    if 'reverse graph' in tree:
-        graph = tree['reverse graph']
-        attrs = nt.get_attrs({None: graph})
-        attr_groups = group_by_namespace(attrs, ('node_',))
-        dot.node_attr.update(attr_groups['node_'])
-        dot.graph_attr.update(attr_groups[''])
-
-        nodes, edges = tree_elements(graph)
-        for (a, b), attrs in edges.items():
-            dot.edge(a, b, **attrs)
-        for node, attrs in nodes.items():
-            dot.node(node, **attrs)
-
-    for name, html_tree in tree.get('html', {}).items():
-        html = unparse(html_tree, full_document=False, pretty=True)
-        dot.node(name, '<\n' + html + '\n>', shape='plaintext')
-
-    for name, csv in tree.get('csv', {}).items():
+    for name, csv in schema.get('csv', {}).items():
         html = unparse({
             'table': {
                 '@cellspacing': '0',
@@ -241,6 +130,6 @@ if __name__ == "__main__":
     output_name, _, _ = file_name.partition('.yml')
 
     tree = yaml.load(args.file)
-    dot = tree_to_dot(tree)
+    dot = graph_to_dot(tree)
     dot.format = 'png'
     dot.render(os.path.join(file_path, output_name + '.dot'))
