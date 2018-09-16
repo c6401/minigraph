@@ -91,8 +91,8 @@ We can also set some arrow (graph edge) properties.
 graph:
   parent:
     child:
-      _arrow_label: arrow
-      _arrow_style: dotted
+      _edge_label: arrow
+      _edge_style: dotted
 ```
 
 
